@@ -1,0 +1,8 @@
+torch>=2.1
+diffusers>=0.30.0
+transformers>=4.40
+accelerate>=0.30
+soundfile>=0.12
+requests>=2.31
+python-dotenv>=1.0
+gradio>=4.30
