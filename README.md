@@ -8,7 +8,21 @@ BGM(バックグラウンドミュージック)を自動生成するツールで
   - **local**: `stabilityai/stable-audio-open-1.0` をローカルGPUで実行(無料・オープンウェイト)
   - **api**: Stability AI のホスト型 REST API を利用(GPU不要・要APIキー・従量課金)
 
-## セットアップ
+## もっと手軽に: index.html 版
+
+Python環境を用意せず、個人のPCですぐ試したい場合は `index.html` を使ってください。
+Stability AI API のみを呼び出す単一HTMLファイルで、ビルドやインストールは不要です。
+
+1. `index.html` をブラウザで開く(ダブルクリックでOK。CORSでブロックされる場合は
+   同じフォルダで `python -m http.server` を実行し `http://localhost:8000` から開く)
+2. APIキーを入力(このブラウザの localStorage にのみ保存され、他へは送信されません)
+3. プロンプトと長さを指定して「BGMを生成」
+
+ローカルGPUによる無料生成(`stabilityai/stable-audio-open-1.0`)は使えず、
+Stability AI のホスト型API(従量課金・要APIキー)のみに対応しています。
+GPU環境がある場合は下記のPython版(`local` バックエンド)を使うと無料で生成できます。
+
+## セットアップ (Python版)
 
 ```bash
 python -m venv .venv

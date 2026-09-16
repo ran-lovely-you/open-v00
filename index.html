@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI BGM Generator (Stable Audio)</title>
+<style>
+  :root {
+    --bg: #12141a;
+    --panel: #1b1e27;
+    --border: #2c3040;
+    --text: #e8eaf0;
+    --muted: #9098ab;
+    --accent: #7c5cff;
+    --accent-hover: #916dff;
+    --danger: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  main {
+    width: 100%;
+    max-width: 640px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin-bottom: 4px;
+  }
+  p.lead {
+    color: var(--muted);
+    margin-top: 0;
+    font-size: 0.9rem;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  label:first-child { margin-top: 0; }
+  input[type="text"], input[type="password"], input[type="number"], textarea, select {
+    width: 100%;
+    background: #0f1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  input[type="range"] { width: 100%; }
+  .range-value { font-size: 0.8rem; color: var(--muted); float: right; }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 18px;
+    transition: background 0.15s;
+  }
+  button:hover:not(:disabled) { background: var(--accent-hover); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .status {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    white-space: pre-wrap;
+  }
+  .status.error { color: var(--danger); }
+  audio { width: 100%; margin-top: 14px; }
+  a.download {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+  a.download:hover { text-decoration: underline; }
+  details { margin-top: 14px; font-size: 0.85rem; color: var(--muted); }
+  summary { cursor: pointer; }
+  footer { color: var(--muted); font-size: 0.75rem; text-align: center; margin-top: 20px; }
+  code { background: #0f1117; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎵 AI BGM Generator</h1>
+  <p class="lead">Stable Audio (Stability AI API) でテキストからBGMを生成します。このページはブラウザだけで動作し、サーバーへのアップロード等は行いません。</p>
+
+  <div class="card">
+    <label for="apiKey">Stability AI API キー</label>
+    <input type="password" id="apiKey" placeholder="sk-...">
+    <details>
+      <summary>APIキーの取得方法・保存について</summary>
+      <p>
+        <a href="https://platform.stability.ai" target="_blank" rel="noopener">platform.stability.ai</a>
+        でアカウント登録後、APIキーを発行してください。<br>
+        入力したキーはこの端末のブラウザ内 (localStorage) にのみ保存され、
+        Stability AI のサーバー以外には送信されません。共有PCでは使用後に「キーを削除」を押してください。
+      </p>
+      <button id="clearKeyBtn" type="button" style="background:#2c3040; margin-top:4px;">キーを削除</button>
+    </details>
+  </div>
+
+  <div class="card">
+    <label for="prompt">プロンプト (英語推奨)</label>
+    <textarea id="prompt" placeholder="peaceful ambient lofi background music, soft piano, 80 bpm, loopable"></textarea>
+
+    <div class="row">
+      <div>
+        <label for="duration">長さ (秒) <span class="range-value" id="durationValue">30</span></label>
+        <input type="range" id="duration" min="5" max="190" value="30">
+      </div>
+      <div>
+        <label for="steps">ステップ数 <span class="range-value" id="stepsValue">30</span></label>
+        <input type="range" id="steps" min="4" max="100" value="30">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="seed">シード (0 = ランダム)</label>
+        <input type="number" id="seed" min="0" value="0">
+      </div>
+      <div>
+        <label for="format">出力フォーマット</label>
+        <select id="format">
+          <option value="mp3">mp3</option>
+          <option value="wav">wav</option>
+        </select>
+      </div>
+    </div>
+
+    <button id="generateBtn" type="button">BGMを生成</button>
+    <div class="status" id="status"></div>
+    <audio id="player" controls style="display:none;"></audio>
+    <a class="download" id="downloadLink" style="display:none;" download="bgm.mp3">⬇ ダウンロード</a>
+  </div>
+
+  <details class="card">
+    <summary>詳細設定 (APIエンドポイント)</summary>
+    <label for="apiBase">APIエンドポイント</label>
+    <input type="text" id="apiBase" value="https://api.stability.ai/v2beta/audio/stable-audio-2/text-to-audio">
+    <p style="margin-top:8px;">
+      Stability AI の仕様変更でエンドポイントが変わった場合はここを書き換えてください。
+      詳細は <a href="https://platform.stability.ai/docs/api-reference" target="_blank" rel="noopener">公式ドキュメント</a> を参照。
+    </p>
+  </details>
+
+  <footer>
+    このHTMLファイルを開くだけで動作します (<code>index.html</code> をダブルクリック)。<br>
+    ブラウザによっては <code>file://</code> から直接開くとCORSでブロックされる場合があります。
+    その場合は同じフォルダで <code>python -m http.server</code> を実行し、
+    <code>http://localhost:8000</code> からアクセスしてください。
+  </footer>
+</main>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const apiKeyInput = $('apiKey');
+  const apiBaseInput = $('apiBase');
+  const promptInput = $('prompt');
+  const durationInput = $('duration');
+  const stepsInput = $('steps');
+  const seedInput = $('seed');
+  const formatInput = $('format');
+  const generateBtn = $('generateBtn');
+  const statusEl = $('status');
+  const player = $('player');
+  const downloadLink = $('downloadLink');
+  const clearKeyBtn = $('clearKeyBtn');
+
+  const STORAGE_KEY = 'bgm_generator_api_key';
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) apiKeyInput.value = saved;
+  } catch (e) { /* localStorage無効な環境ではスキップ */ }
+
+  apiKeyInput.addEventListener('input', () => {
+    try { localStorage.setItem(STORAGE_KEY, apiKeyInput.value); } catch (e) {}
+  });
+
+  clearKeyBtn.addEventListener('click', () => {
+    apiKeyInput.value = '';
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    setStatus('APIキーを削除しました。', false);
+  });
+
+  durationInput.addEventListener('input', () => {
+    $('durationValue').textContent = durationInput.value;
+  });
+  stepsInput.addEventListener('input', () => {
+    $('stepsValue').textContent = stepsInput.value;
+  });
+
+  function setStatus(text, isError) {
+    statusEl.textContent = text;
+    statusEl.classList.toggle('error', !!isError);
+  }
+
+  let lastObjectUrl = null;
+
+  generateBtn.addEventListener('click', async () => {
+    const apiKey = apiKeyInput.value.trim();
+    const prompt = promptInput.value.trim();
+    const apiBase = apiBaseInput.value.trim();
+    const format = formatInput.value;
+
+    if (!apiKey) { setStatus('APIキーを入力してください。', true); return; }
+    if (!prompt) { setStatus('プロンプトを入力してください。', true); return; }
+
+    generateBtn.disabled = true;
+    player.style.display = 'none';
+    downloadLink.style.display = 'none';
+    setStatus('生成中... (数十秒かかる場合があります)', false);
+
+    const form = new FormData();
+    form.append('prompt', prompt);
+    form.append('duration', durationInput.value);
+    form.append('steps', stepsInput.value);
+    form.append('seed', seedInput.value);
+    form.append('output_format', format);
+
+    try {
+      const res = await fetch(apiBase, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + apiKey,
+          'Accept': 'audio/*'
+        },
+        body: form
+      });
+
+      if (!res.ok) {
+        let detail = '';
+        try { detail = await res.text(); } catch (e) {}
+        throw new Error('API エラー (status=' + res.status + ') ' + detail);
+      }
+
+      const blob = await res.blob();
+      if (lastObjectUrl) URL.revokeObjectURL(lastObjectUrl);
+      lastObjectUrl = URL.createObjectURL(blob);
+
+      player.src = lastObjectUrl;
+      player.style.display = 'block';
+      downloadLink.href = lastObjectUrl;
+      downloadLink.download = 'bgm.' + format;
+      downloadLink.style.display = 'inline-block';
+      setStatus('生成完了。', false);
+    } catch (err) {
+      console.error(err);
+      let msg = '生成に失敗しました: ' + err.message;
+      if (err instanceof TypeError) {
+        msg += '\n(ネットワークエラーまたはCORSでブロックされた可能性があります。file:// で開いている場合は "python -m http.server" 経由で開き直してください。)';
+      }
+      setStatus(msg, true);
+    } finally {
+      generateBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
