@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI BGM Studio - 無料AI風BGM自動生成ソフト</title>
+<style>
+  :root{
+    --bg1:#0b0c14;
+    --bg2:#151726;
+    --card:#1b1e30;
+    --card2:#20243a;
+    --text:#eef0ff;
+    --muted:#9aa0c0;
+    --accent:#7c9bff;
+    --accent2:#c17cff;
+    --good:#5be0a0;
+    --danger:#ff6b6b;
+    --border:#2c3050;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:
+      radial-gradient(1200px 800px at 15% -10%, rgba(124,155,255,0.18), transparent 60%),
+      radial-gradient(1000px 700px at 110% 10%, rgba(193,124,255,0.14), transparent 60%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    color:var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, Roboto, Helvetica, Arial, sans-serif;
+    min-height:100%;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 60px;
+  }
+  .app{
+    width:100%;
+    max-width:960px;
+  }
+  header{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  header h1{
+    font-size:26px;
+    margin:0 0 6px;
+    letter-spacing:0.3px;
+  }
+  header p{
+    margin:0;
+    color:var(--muted);
+    font-size:13.5px;
+    line-height:1.6;
+  }
+  .badge-row{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .badge{
+    font-size:11.5px;
+    padding:4px 10px;
+    border-radius:999px;
+    background:rgba(124,155,255,0.12);
+    border:1px solid rgba(124,155,255,0.35);
+    color:#c9d3ff;
+  }
+  .card{
+    background:linear-gradient(180deg, var(--card), var(--card2));
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:20px;
+    margin-bottom:18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  }
+  .viz-wrap{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;
+    background:#0a0b14;
+    border:1px solid var(--border);
+    height:180px;
+  }
+  #viz{
+    width:100%;
+    height:100%;
+    display:block;
+  }
+  .now-playing{
+    position:absolute;
+    top:10px;
+    left:14px;
+    font-size:12.5px;
+    color:#cfd6ff;
+    background:rgba(10,10,20,0.45);
+    padding:5px 10px;
+    border-radius:8px;
+    backdrop-filter:blur(3px);
+  }
+  .transport{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    margin-top:16px;
+    flex-wrap:wrap;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:12px;
+    padding:11px 18px;
+    font-size:14px;
+    font-weight:600;
+    transition:transform .08s ease, filter .15s ease, opacity .15s ease;
+  }
+  button:active{transform:scale(0.97);}
+  button:disabled{opacity:0.4; cursor:not-allowed;}
+  .btn-primary{
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    color:#0c0d16;
+  }
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{
+    background:rgba(255,255,255,0.06);
+    color:var(--text);
+    border:1px solid var(--border);
+  }
+  .btn-ghost:hover{background:rgba(255,255,255,0.1);}
+  .btn-rec{
+    background:rgba(255,107,107,0.12);
+    color:#ffb3b3;
+    border:1px solid rgba(255,107,107,0.4);
+  }
+  .btn-rec.active{
+    background:var(--danger);
+    color:#150708;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:14px;
+    margin-top:18px;
+  }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  .field .value{
+    color:#c9d3ff;
+    font-weight:600;
+  }
+  input[type="range"]{
+    width:100%;
+    accent-color:var(--accent);
+  }
+  .mood-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px;
+    margin-top:6px;
+  }
+  .mood-btn{
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px;
+    text-align:left;
+    color:var(--text);
+  }
+  .mood-btn .m-name{
+    font-weight:700;
+    font-size:14px;
+    display:block;
+    margin-bottom:3px;
+  }
+  .mood-btn .m-desc{
+    font-size:11.5px;
+    color:var(--muted);
+    display:block;
+    line-height:1.4;
+  }
+  .mood-btn.active{
+    border-color:var(--accent);
+    background:rgba(124,155,255,0.14);
+    box-shadow:0 0 0 1px rgba(124,155,255,0.4) inset;
+  }
+  .section-title{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:0.8px;
+    color:var(--muted);
+    margin:0 0 10px;
+  }
+  .rec-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+  #downloadArea a{
+    color:var(--good);
+    font-size:13px;
+    text-decoration:none;
+    border:1px solid rgba(91,224,160,0.4);
+    padding:8px 12px;
+    border-radius:10px;
+    background:rgba(91,224,160,0.08);
+  }
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    margin-top:8px;
+    line-height:1.8;
+  }
+  .hint{
+    font-size:12px;
+    color:var(--muted);
+    text-align:center;
+    margin-top:10px;
+  }
+  @media (max-width:520px){
+    header h1{font-size:21px;}
+    .card{padding:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🎼 AI BGM Studio</h1>
+    <p>ブラウザだけで動く、無料の自動作曲BGMジェネレーター。<br>
+    サーバーもAPIキーも課金も不要 — この <code>index.html</code> を開くだけで使えます。</p>
+    <div class="badge-row">
+      <span class="badge">無料・完全ローカル動作</span>
+      <span class="badge">API不要 / オフラインOK</span>
+      <span class="badge">無限に生成 &amp; ループしない曲</span>
+      <span class="badge">WAV書き出し対応</span>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="viz-wrap">
+      <canvas id="viz"></canvas>
+      <div class="now-playing" id="nowPlaying">停止中 — 再生ボタンを押してください</div>
+    </div>
+
+    <div class="transport">
+      <button class="btn-primary" id="playBtn">▶ 再生スタート</button>
+      <button class="btn-ghost" id="regenBtn">🎲 曲を作り直す</button>
+      <button class="btn-rec" id="recBtn">⏺ 録音してWAV保存</button>
+    </div>
+    <div class="rec-row" id="downloadArea" style="display:none;justify-content:center;"></div>
+    <p class="hint">初回はブラウザの仕様上、ボタンを押した瞬間から音が有効になります(自動再生制限のため)。</p>
+  </div>
+
+  <div class="card">
+    <p class="section-title">ムード(曲調)を選ぶ</p>
+    <div class="mood-grid" id="moodGrid"></div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">サウンドの調整</p>
+    <div class="grid">
+      <div class="field">
+        <label>マスター音量 <span class="value" id="volLabel">70%</span></label>
+        <input type="range" id="volSlider" min="0" max="100" value="70">
+      </div>
+      <div class="field">
+        <label>テンポ補正 <span class="value" id="tempoLabel">±0%</span></label>
+        <input type="range" id="tempoSlider" min="-30" max="30" value="0">
+      </div>
+      <div class="field">
+        <label>メロディの密度 <span class="value" id="densityLabel">標準</span></label>
+        <input type="range" id="densitySlider" min="-40" max="40" value="0">
+      </div>
+      <div class="field">
+        <label>空間の広がり(リバーブ) <span class="value" id="spaceLabel">標準</span></label>
+        <input type="range" id="spaceSlider" min="-40" max="40" value="0">
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    このソフトは Web Audio API を使い、和音進行・スケール・リズムのルールに基づいて<br>
+    リアルタイムに旋律とコードをその場で自動作曲する「生成系エンジン」です(音声ファイルは一切使用していません)。<br>
+    生成される音楽はロイヤリティフリーとしてご自由にお使いください。
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------------------------------------------------------------
+   * 音楽理論の基礎データ
+   * ------------------------------------------------------------------- */
+  const SCALES = {
+    major:       [0,2,4,5,7,9,11],
+    naturalMinor:[0,2,3,5,7,8,10],
+    dorian:      [0,2,3,5,7,9,10],
+    phrygian:    [0,1,3,5,7,8,10],
+    lydian:      [0,2,4,6,7,9,11]
+  };
+  const PENTA_ALLOWED = [0,1,2,4,5]; // indices within a 7-tone major scale that sound "pentatonic"
+
+  const MOODS = {
+    lofi: {
+      key:'lofi', name:'Lo-fi Chill', desc:'ゆったりした午後のカフェBGM',
+      scaleName:'dorian', rootMidi:57, tempo:74, progression:[0,3,5,4],
+      waveLead:'sine', waveBass:'triangle', wavePad:'triangle',
+      filterLead:1600, filterPad:900, filterBass:500,
+      reverbWet:0.30, density:0.5, padLevel:0.15, leadLevel:0.13, bassLevel:0.20,
+      drums:false, vibrato:true, noiseBed:0.02, hue:262
+    },
+    ambient: {
+      key:'ambient', name:'Ambient Space', desc:'宇宙的で静かなドローン',
+      scaleName:'lydian', rootMidi:50, tempo:58, progression:[0,4,5,3],
+      waveLead:'sine', waveBass:'sine', wavePad:'sine',
+      filterLead:2800, filterPad:2000, filterBass:400,
+      reverbWet:0.48, density:0.28, padLevel:0.17, leadLevel:0.09, bassLevel:0.14,
+      drums:false, vibrato:false, noiseBed:0.05, hue:200
+    },
+    focus: {
+      key:'focus', name:'Focus / Study', desc:'集中したい時の静かな作業BGM',
+      scaleName:'major', rootMidi:60, tempo:92, progression:[0,3,4,0],
+      waveLead:'triangle', waveBass:'triangle', wavePad:'triangle',
+      filterLead:2200, filterPad:1300, filterBass:600,
+      reverbWet:0.22, density:0.55, padLevel:0.13, leadLevel:0.11, bassLevel:0.19,
+      drums:false, vibrato:false, noiseBed:0.015, hue:150
+    },
+    upbeat: {
+      key:'upbeat', name:'Upbeat Energetic', desc:'明るく元気なポップ調',
+      scaleName:'major', rootMidi:55, tempo:126, progression:[0,3,4,5],
+      waveLead:'square', waveBass:'sawtooth', wavePad:'sawtooth',
+      filterLead:3400, filterPad:1500, filterBass:750,
+      reverbWet:0.16, density:0.72, padLevel:0.10, leadLevel:0.15, bassLevel:0.22,
+      drums:true, vibrato:false, noiseBed:0.0, hue:35, pentatonicMelody:true
+    },
+    dark: {
+      key:'dark', name:'Dark Cinematic', desc:'緊張感のあるシネマティック',
+      scaleName:'phrygian', rootMidi:52, tempo:64, progression:[0,1,5,4],
+      waveLead:'sawtooth', waveBass:'sine', wavePad:'sawtooth',
+      filterLead:1100, filterPad:650, filterBass:340,
+      reverbWet:0.42, density:0.3, padLevel:0.19, leadLevel:0.09, bassLevel:0.25,
+      drums:false, vibrato:false, noiseBed:0.04, hue:280, detunePad:6
+    }
+  };
+  const MOOD_ORDER = ['lofi','ambient','focus','upbeat','dark'];
+
+  function noteToFreq(midi){ return 440 * Math.pow(2, (midi-69)/12); }
+  function degreeToSemitone(scaleArr, degree){
+    const len = scaleArr.length;
+    const oct = Math.floor(degree/len);
+    const idx = ((degree % len) + len) % len;
+    return oct*12 + scaleArr[idx];
+  }
+  function weightedPick(pairs){
+    const total = pairs.reduce((s,p)=>s+p[1],0);
+    let r = Math.random()*total;
+    for (const [val,w] of pairs){ if ((r-=w) <= 0) return val; }
+    return pairs[pairs.length-1][0];
+  }
+  function rand(min,max){ return min + Math.random()*(max-min); }
+
+  /* ---------------------------------------------------------------------
+   * オーディオエンジン
+   * ------------------------------------------------------------------- */
+  class BgmEngine{
+    constructor(){
+      this.ctx = null;
+      this.playing = false;
+      this.mood = MOODS.lofi;
+      this.userVolume = 0.7;
+      this.tempoAdjust = 0;   // -0.3 .. 0.3
+      this.densityAdjust = 0; // -0.4 .. 0.4
+      this.spaceAdjust = 0;   // -0.4 .. 0.4
+
+      this.step16 = 0;
+      this.nextNoteTime = 0;
+      this.timerId = null;
+      this.lookaheadMs = 25;
+      this.scheduleAheadTime = 0.12;
+
+      this.chordIdx = 0;
+      this.melodyDegree = 4;
+      this.noiseBuffer = null;
+      this.reverbBuffer = null;
+      this.noiseBedSource = null;
+
+      this.onStepVisual = null; // callback(chordName, barCount)
+      this.barCount = 0;
+    }
+
+    ensureContext(){
+      if (this.ctx) return;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new Ctx();
+
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = this.userVolume;
+
+      this.compressor = this.ctx.createDynamicsCompressor();
+      this.compressor.threshold.value = -18;
+      this.compressor.knee.value = 24;
+      this.compressor.ratio.value = 3;
+      this.compressor.attack.value = 0.01;
+      this.compressor.release.value = 0.25;
+
+      this.analyser = this.ctx.createAnalyser();
+      this.analyser.fftSize = 256;
+
+      this.recDest = this.ctx.createMediaStreamDestination();
+
+      this.masterGain.connect(this.compressor);
+      this.compressor.connect(this.analyser);
+      this.analyser.connect(this.ctx.destination);
+      this.analyser.connect(this.recDest);
+
+      // reverb send/return
+      this.reverbBuffer = this.buildImpulseResponse(3.2, 3.2);
+      this.convolver = this.ctx.createConvolver();
+      this.convolver.buffer = this.reverbBuffer;
+      this.reverbSendGain = this.ctx.createGain();
+      this.reverbSendGain.gain.value = 0.3;
+      this.reverbReturnGain = this.ctx.createGain();
+      this.reverbReturnGain.gain.value = 1.0;
+      this.reverbSendGain.connect(this.convolver);
+      this.convolver.connect(this.reverbReturnGain);
+      this.reverbReturnGain.connect(this.masterGain);
+
+      // dry bus that everything plays into
+      this.dryBus = this.ctx.createGain();
+      this.dryBus.gain.value = 1.0;
+      this.dryBus.connect(this.masterGain);
+      this.dryBus.connect(this.reverbSendGain);
+
+      this.noiseBuffer = this.createNoiseBuffer(2.0);
+    }
+
+    createNoiseBuffer(seconds){
+      const len = Math.floor(this.ctx.sampleRate*seconds);
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i=0;i<len;i++) data[i] = Math.random()*2-1;
+      return buf;
+    }
+
+    buildImpulseResponse(seconds, decay){
+      const rate = this.ctx.sampleRate;
+      const len = Math.floor(rate*seconds);
+      const buf = this.ctx.createBuffer(2, len, rate);
+      for (let ch=0; ch<2; ch++){
+        const data = buf.getChannelData(ch);
+        for (let i=0;i<len;i++){
+          data[i] = (Math.random()*2-1) * Math.pow(1-i/len, decay);
+        }
+      }
+      return buf;
+    }
+
+    get scaleArr(){ return SCALES[this.mood.scaleName]; }
+
+    effectiveTempo(){
+      return this.mood.tempo * (1 + this.tempoAdjust);
+    }
+    effectiveDensity(){
+      return Math.max(0.05, Math.min(0.95, this.mood.density + this.densityAdjust));
+    }
+    effectiveReverb(){
+      return Math.max(0.02, Math.min(0.85, this.mood.reverbWet + this.spaceAdjust));
+    }
+
+    /* ---- tone helpers -------------------------------------------------- */
+    playTone(opts){
+      const ctx = this.ctx;
+      const {
+        freq, start, duration, type='sine', peak=0.2,
+        attack=0.02, release=0.3, filterFreq=null, filterQ=0.7,
+        vibrato=false, detune=0, dest=null
+      } = opts;
+
+      const osc = ctx.createOscillator();
+      osc.type = type;
+      osc.frequency.value = freq;
+      if (detune) osc.detune.value = detune;
+
+      const gainNode = ctx.createGain();
+      const safeAttack = Math.max(0.005, attack);
+      const sustainStart = Math.max(start+safeAttack, start+duration-release);
+      gainNode.gain.setValueAtTime(0.0001, start);
+      gainNode.gain.exponentialRampToValueAtTime(Math.max(peak,0.0002), start+safeAttack);
+      gainNode.gain.setValueAtTime(Math.max(peak,0.0002), sustainStart);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, start+duration+release);
+
+      osc.connect(gainNode);
+      let outNode = gainNode;
+
+      if (filterFreq){
+        const filt = ctx.createBiquadFilter();
+        filt.type = 'lowpass';
+        filt.frequency.value = filterFreq;
+        filt.Q.value = filterQ;
+        gainNode.connect(filt);
+        outNode = filt;
+      }
+
+      outNode.connect(dest || this.dryBus);
+
+      let lfo=null, lfoGain=null;
+      if (vibrato){
+        lfo = ctx.createOscillator();
+        lfo.frequency.value = rand(4.5,6.2);
+        lfoGain = ctx.createGain();
+        lfoGain.gain.value = 5;
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.detune);
+        lfo.start(start);
+        lfo.stop(start+duration+release+0.05);
+      }
+
+      osc.start(start);
+      osc.stop(start+duration+release+0.08);
+    }
+
+    playNoiseHit(opts){
+      const ctx = this.ctx;
+      const { start, duration, peak=0.3, filterType='highpass', filterFreq=6000, filterQ=0.8, dest=null } = opts;
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(peak, start);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, start+duration);
+      const filt = ctx.createBiquadFilter();
+      filt.type = filterType;
+      filt.frequency.value = filterFreq;
+      filt.Q.value = filterQ;
+      src.connect(filt);
+      filt.connect(gainNode);
+      gainNode.connect(dest || this.dryBus);
+      src.start(start);
+      src.stop(start+duration+0.05);
+    }
+
+    playKick(start){
+      const ctx = this.ctx;
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      const gainNode = ctx.createGain();
+      osc.frequency.setValueAtTime(150, start);
+      osc.frequency.exponentialRampToValueAtTime(42, start+0.13);
+      gainNode.gain.setValueAtTime(0.5, start);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, start+0.22);
+      osc.connect(gainNode);
+      gainNode.connect(this.dryBus);
+      osc.start(start);
+      osc.stop(start+0.25);
+    }
+
+    playSnare(start){
+      this.playNoiseHit({start, duration:0.14, peak:0.28, filterType:'bandpass', filterFreq:1800, filterQ:0.9});
+    }
+    playHat(start, open){
+      this.playNoiseHit({start, duration: open?0.22:0.05, peak: open?0.10:0.14, filterType:'highpass', filterFreq:7500, filterQ:0.7});
+    }
+
+    /* ---- generative composition ---------------------------------------- */
+    nextMelodyDegree(chordRootDegree, strongBeat){
+      const len = this.scaleArr.length;
+      if (strongBeat && Math.random() < 0.55){
+        const tones = [chordRootDegree, chordRootDegree+2, chordRootDegree+4];
+        let best = tones[0], bestDist = Infinity;
+        for (const t of tones){
+          const d = Math.abs(degreeToSemitone(this.scaleArr,t) - degreeToSemitone(this.scaleArr,this.melodyDegree));
+          if (d < bestDist){ bestDist = d; best = t; }
+        }
+        this.melodyDegree = best;
+      } else {
+        const delta = weightedPick([[1,0.28],[-1,0.28],[2,0.14],[-2,0.14],[3,0.06],[-3,0.06],[0,0.04]]);
+        let newDeg = this.melodyDegree + delta;
+        if (newDeg < 0 || newDeg > 13) newDeg = this.melodyDegree - delta;
+        this.melodyDegree = Math.max(0, Math.min(13, newDeg));
+      }
+      if (this.mood.pentatonicMelody){
+        const idx = ((this.melodyDegree % len) + len) % len;
+        if (PENTA_ALLOWED.indexOf(idx) === -1){
+          this.melodyDegree = this.melodyDegree + 1;
+        }
+      }
+      return this.melodyDegree;
+    }
+
+    scheduleBar(barStartTime){
+      const mood = this.mood;
+      const scale = this.scaleArr;
+      const beatSec = 60/this.effectiveTempo();
+      const barSec = beatSec*4;
+
+      const chordRootDegree = mood.progression[this.chordIdx % mood.progression.length];
+      this.chordIdx++;
+      this.barCount++;
+
+      // --- pad chord ---
+      const chordDegrees = [chordRootDegree, chordRootDegree+2, chordRootDegree+4];
+      const detunePad = mood.detunePad || 0;
+      chordDegrees.forEach((deg, i)=>{
+        const semis = degreeToSemitone(scale, deg);
+        const freq = noteToFreq(mood.rootMidi + semis);
+        this.playTone({
+          freq, start: barStartTime, duration: barSec*0.95,
+          type: mood.wavePad, peak: mood.padLevel/1.6,
+          attack: 0.5, release: 1.1,
+          filterFreq: mood.filterPad, filterQ: 0.6,
+          detune: (i-1)*detunePad
+        });
+      });
+
+      // --- bass ---
+      const bassSemisRoot = degreeToSemitone(scale, chordRootDegree) - 24;
+      this.playTone({
+        freq: noteToFreq(mood.rootMidi + bassSemisRoot),
+        start: barStartTime, duration: beatSec*1.7,
+        type: mood.waveBass, peak: mood.bassLevel,
+        attack: 0.01, release: 0.25, filterFreq: mood.filterBass, filterQ: 0.8
+      });
+      const bassSemisFifth = degreeToSemitone(scale, chordRootDegree+4) - 24;
+      this.playTone({
+        freq: noteToFreq(mood.rootMidi + bassSemisFifth),
+        start: barStartTime + beatSec*2, duration: beatSec*1.7,
+        type: mood.waveBass, peak: mood.bassLevel*0.85,
+        attack: 0.01, release: 0.25, filterFreq: mood.filterBass, filterQ: 0.8
+      });
+
+      // --- drums ---
+      if (mood.drums){
+        for (let s=0; s<16; s++){
+          const t = barStartTime + s*(beatSec/4);
+          if (s===0 || s===8) this.playKick(t);
+          if (s===4 || s===12) this.playSnare(t);
+          if (s%2===0) this.playHat(t, s===14);
+        }
+      }
+
+      // --- melody (16th-note grid, probabilistic) ---
+      const density = this.effectiveDensity();
+      let s = 0;
+      while (s < 16){
+        const strongBeat = (s%8===0);
+        const willPlay = Math.random() < (strongBeat ? Math.min(0.95,density+0.25) : density);
+        if (willPlay){
+          const humanize = rand(-0.012, 0.012);
+          const t = barStartTime + s*(beatSec/4) + humanize;
+          const lenSteps = weightedPick([[1,0.35],[2,0.35],[3,0.15],[4,0.15]]);
+          const deg = this.nextMelodyDegree(chordRootDegree, strongBeat);
+          const semis = degreeToSemitone(scale, deg + 7); // lead register, an octave+ above pad
+          const dur = lenSteps*(beatSec/4);
+          this.playTone({
+            freq: noteToFreq(mood.rootMidi + semis),
+            start: t, duration: dur*0.92,
+            type: mood.waveLead, peak: mood.leadLevel,
+            attack: 0.015, release: Math.min(0.35, dur*0.6),
+            filterFreq: mood.filterLead, filterQ: 0.7,
+            vibrato: mood.vibrato
+          });
+          s += lenSteps;
+        } else {
+          s += 1;
+        }
+      }
+
+      if (typeof this.onStepVisual === 'function'){
+        const chordNames = ['I','ii','iii','IV','V','vi','vii'];
+        const chordLabel = chordNames[((chordRootDegree)%scale.length+scale.length)%scale.length] || '?';
+        this.onStepVisual(chordLabel, this.barCount);
+      }
+    }
+
+    /* ---- scheduler loop -------------------------------------------------- */
+    tick(){
+      const ctx = this.ctx;
+      while (this.nextNoteTime < ctx.currentTime + this.scheduleAheadTime){
+        this.scheduleBar(this.nextNoteTime);
+        const beatSec = 60/this.effectiveTempo();
+        this.nextNoteTime += beatSec*4;
+      }
+    }
+
+    startNoiseBed(){
+      if (!this.mood.noiseBed || this.mood.noiseBed<=0) return;
+      const ctx = this.ctx;
+      const src = ctx.createBufferSource();
+      const bedBuffer = this.createNoiseBuffer(2.0);
+      bedBuffer.length && (src.buffer = bedBuffer);
+      src.loop = true;
+      const filt = ctx.createBiquadFilter();
+      filt.type = 'bandpass';
+      filt.frequency.value = 700;
+      filt.Q.value = 0.5;
+      const g = ctx.createGain();
+      g.gain.value = this.mood.noiseBed;
+      src.connect(filt);
+      filt.connect(g);
+      g.connect(this.dryBus);
+      src.start();
+      this.noiseBedSource = {src, gainNode:g};
+    }
+    stopNoiseBed(){
+      if (this.noiseBedSource){
+        try{ this.noiseBedSource.src.stop(); }catch(e){}
+        this.noiseBedSource = null;
+      }
+    }
+
+    setMood(key){
+      this.mood = MOODS[key];
+      this.chordIdx = 0;
+      this.melodyDegree = 4;
+      if (this.playing){
+        this.stopNoiseBed();
+        this.startNoiseBed();
+      }
+    }
+
+    regenerate(){
+      this.chordIdx = Math.floor(Math.random()*4);
+      this.melodyDegree = Math.floor(Math.random()*7)+3;
+    }
+
+    setVolume(v){
+      this.userVolume = v;
+      if (this.masterGain) this.masterGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    }
+    setTempoAdjust(v){ this.tempoAdjust = v; }
+    setDensityAdjust(v){ this.densityAdjust = v; }
+    setSpaceAdjust(v){
+      this.spaceAdjust = v;
+      if (this.reverbSendGain) this.reverbSendGain.gain.setTargetAtTime(this.effectiveReverb(), this.ctx.currentTime, 0.1);
+    }
+
+    start(){
+      this.ensureContext();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      if (this.playing) return;
+      this.playing = true;
+      this.chordIdx = 0;
+      this.step16 = 0;
+      this.nextNoteTime = this.ctx.currentTime + 0.06;
+      this.reverbSendGain.gain.value = this.effectiveReverb();
+      this.startNoiseBed();
+      this.timerId = setInterval(()=>this.tick(), this.lookaheadMs);
+    }
+
+    stop(){
+      this.playing = false;
+      if (this.timerId){ clearInterval(this.timerId); this.timerId = null; }
+      this.stopNoiseBed();
+    }
+
+    getAnalyserData(){
+      if (!this.analyser) return null;
+      const arr = new Uint8Array(this.analyser.frequencyBinCount);
+      this.analyser.getByteFrequencyData(arr);
+      return arr;
+    }
+  }
+
+  /* ---------------------------------------------------------------------
+   * UI wiring
+   * ------------------------------------------------------------------- */
+  const engine = new BgmEngine();
+
+  const moodGrid = document.getElementById('moodGrid');
+  MOOD_ORDER.forEach(key=>{
+    const m = MOODS[key];
+    const btn = document.createElement('button');
+    btn.className = 'mood-btn' + (key==='lofi' ? ' active' : '');
+    btn.dataset.mood = key;
+    btn.innerHTML = '<span class="m-name">'+m.name+'</span><span class="m-desc">'+m.desc+'</span>';
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      engine.setMood(key);
+      updateNowPlaying();
+    });
+    moodGrid.appendChild(btn);
+  });
+
+  const playBtn = document.getElementById('playBtn');
+  const regenBtn = document.getElementById('regenBtn');
+  const recBtn = document.getElementById('recBtn');
+  const nowPlaying = document.getElementById('nowPlaying');
+  const downloadArea = document.getElementById('downloadArea');
+
+  function updateNowPlaying(chordLabel, barCount){
+    const m = engine.mood;
+    if (!engine.playing){
+      nowPlaying.textContent = '停止中 — 再生ボタンを押してください';
+      return;
+    }
+    const tempo = Math.round(engine.effectiveTempo());
+    let txt = '再生中: ' + m.name + ' / ' + tempo + ' BPM';
+    if (chordLabel) txt += ' / コード: ' + chordLabel + ' / 第' + barCount + '小節';
+    nowPlaying.textContent = txt;
+  }
+  engine.onStepVisual = (chordLabel, barCount)=>{ updateNowPlaying(chordLabel, barCount); };
+
+  playBtn.addEventListener('click', ()=>{
+    if (!engine.playing){
+      engine.start();
+      playBtn.textContent = '⏸ 停止';
+      updateNowPlaying();
+    } else {
+      engine.stop();
+      playBtn.textContent = '▶ 再生スタート';
+      updateNowPlaying();
+    }
+  });
+
+  regenBtn.addEventListener('click', ()=>{
+    engine.regenerate();
+  });
+
+  // --- sliders ---
+  const volSlider = document.getElementById('volSlider');
+  const tempoSlider = document.getElementById('tempoSlider');
+  const densitySlider = document.getElementById('densitySlider');
+  const spaceSlider = document.getElementById('spaceSlider');
+  const volLabel = document.getElementById('volLabel');
+  const tempoLabel = document.getElementById('tempoLabel');
+  const densityLabel = document.getElementById('densityLabel');
+  const spaceLabel = document.getElementById('spaceLabel');
+
+  function labelFromRange(v){
+    if (v <= -20) return '少なめ';
+    if (v < 20) return '標準';
+    return '多め';
+  }
+
+  volSlider.addEventListener('input', ()=>{
+    const v = Number(volSlider.value)/100;
+    engine.setVolume(v);
+    volLabel.textContent = volSlider.value + '%';
+  });
+  tempoSlider.addEventListener('input', ()=>{
+    const v = Number(tempoSlider.value)/100;
+    engine.setTempoAdjust(v);
+    tempoLabel.textContent = (v>=0?'+':'') + Math.round(v*100) + '%';
+  });
+  densitySlider.addEventListener('input', ()=>{
+    const v = Number(densitySlider.value)/100;
+    engine.setDensityAdjust(v);
+    densityLabel.textContent = labelFromRange(Number(densitySlider.value));
+  });
+  spaceSlider.addEventListener('input', ()=>{
+    const v = Number(spaceSlider.value)/100;
+    engine.setSpaceAdjust(v);
+    spaceLabel.textContent = labelFromRange(Number(spaceSlider.value));
+  });
+
+  // --- recording ---
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let recording = false;
+
+  recBtn.addEventListener('click', ()=>{
+    if (!engine.ctx){
+      engine.start();
+      playBtn.textContent = '⏸ 停止';
+      updateNowPlaying();
+    }
+    if (!recording){
+      recordedChunks = [];
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)){
+        mimeType = 'audio/webm';
+      }
+      try{
+        mediaRecorder = new MediaRecorder(engine.recDest.stream, {mimeType});
+      }catch(e){
+        mediaRecorder = new MediaRecorder(engine.recDest.stream);
+      }
+      mediaRecorder.ondataavailable = (e)=>{ if (e.data && e.data.size>0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = ()=>{
+        const blob = new Blob(recordedChunks, {type: mediaRecorder.mimeType || 'audio/webm'});
+        const url = URL.createObjectURL(blob);
+        const ext = (blob.type.indexOf('webm')>=0) ? 'webm' : 'audio';
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ai-bgm-' + engine.mood.key + '-' + Date.now() + '.' + ext;
+        a.textContent = '⬇ 生成されたBGMをダウンロード (' + ext + ')';
+        downloadArea.innerHTML = '';
+        downloadArea.appendChild(a);
+        downloadArea.style.display = 'flex';
+      };
+      mediaRecorder.start();
+      recording = true;
+      recBtn.textContent = '⏹ 録音停止 & 保存';
+      recBtn.classList.add('active');
+      downloadArea.style.display = 'none';
+    } else {
+      mediaRecorder.stop();
+      recording = false;
+      recBtn.textContent = '⏺ 録音してWAV保存';
+      recBtn.classList.remove('active');
+    }
+  });
+
+  /* ---------------------------------------------------------------------
+   * visualizer
+   * ------------------------------------------------------------------- */
+  const canvas = document.getElementById('viz');
+  const vctx = canvas.getContext('2d');
+  function resizeCanvas(){
+    const wrap = canvas.parentElement;
+    canvas.width = wrap.clientWidth * devicePixelRatio;
+    canvas.height = wrap.clientHeight * devicePixelRatio;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function draw(){
+    requestAnimationFrame(draw);
+    const w = canvas.width, h = canvas.height;
+    vctx.fillStyle = 'rgba(8,9,16,0.35)';
+    vctx.fillRect(0,0,w,h);
+
+    const data = engine.getAnalyserData();
+    const hue = engine.mood ? engine.mood.hue : 260;
+    if (!data){
+      return;
+    }
+    const barCount = 48;
+    const step = Math.floor(data.length/barCount);
+    const barWidth = w/barCount;
+    for (let i=0;i<barCount;i++){
+      let sum=0;
+      for (let j=0;j<step;j++) sum += data[i*step+j] || 0;
+      const avg = sum/step;
+      const barH = (avg/255) * h * 0.9;
+      const x = i*barWidth;
+      const grad = vctx.createLinearGradient(0, h-barH, 0, h);
+      grad.addColorStop(0, 'hsla('+hue+',90%,70%,0.95)');
+      grad.addColorStop(1, 'hsla('+(hue+40)+',80%,45%,0.5)');
+      vctx.fillStyle = grad;
+      vctx.fillRect(x+1, h-barH, barWidth-2, barH);
+    }
+  }
+  requestAnimationFrame(draw);
+
+  updateNowPlaying();
+})();
+</script>
+</body>
+</html>
